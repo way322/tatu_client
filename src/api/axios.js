@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'http://sd.railway.internal/api',
 });
 
 // Добавляем токен в заголовки, если он есть
