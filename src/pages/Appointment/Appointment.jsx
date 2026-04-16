@@ -61,22 +61,23 @@ const Appointment = () => {
         dispatch(setAppointmentData({ [field]: value }));
     };
 
-    const handlePhoneChange = (value) => {
-        const cleaned = value.replace(/\D/g, '');
-        let formatted = cleaned;
-
-        if (cleaned.length > 0) {
-            formatted = '+7 (' + cleaned.substring(1, 4);
-            if (cleaned.length > 4) formatted += ') ' + cleaned.substring(4, 7);
-            if (cleaned.length > 7) formatted += '-' + cleaned.substring(7, 9);
-            if (cleaned.length > 9) formatted += '-' + cleaned.substring(9, 11);
-        }
-
-        setPhone(formatted);
-        setFormError('');
-        dispatch(clearBookingError());
-        dispatch(setAppointmentData({ phone: cleaned }));
-    };
+const handlePhoneChange = (value) => {
+    let cleaned = value.replace(/\D/g, '');
+    if (cleaned.length > 11) {
+        cleaned = cleaned.slice(0, 11);
+    }
+    let formatted = cleaned;
+    if (cleaned.length > 0) {
+        formatted = '+7 (' + cleaned.substring(1, 4);
+        if (cleaned.length > 4) formatted += ') ' + cleaned.substring(4, 7);
+        if (cleaned.length > 7) formatted += '-' + cleaned.substring(7, 9);
+        if (cleaned.length > 9) formatted += '-' + cleaned.substring(9, 11);
+    }
+    setPhone(formatted);
+    setFormError('');
+    dispatch(clearBookingError());
+    dispatch(setAppointmentData({ phone: cleaned }));
+};
 
     const isPastTimeSlot = (date, time) => {
         if (!date || !time) return false;
