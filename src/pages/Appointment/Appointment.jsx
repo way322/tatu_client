@@ -149,12 +149,24 @@ const handleSubmit = async (e) => {
     }
 
     try {
-        // Ждём завершения запроса и проверяем, что он успешен
-        await dispatch(addAppointment()).unwrap();
-        setIsSuccess(true);
+        const resultAction = await dispatch(addAppointment({
+            clientName: currentAppointment.clientName,
+            date: currentAppointment.date,
+            master: currentAppointment.master,
+            service: currentAppointment.service,
+            phone: currentAppointment.phone,      // уже содержит 11 цифр
+            tattooIdea: currentAppointment.tattooIdea,
+            tattooSize: currentAppointment.tattooSize,
+            bodyPlacement: currentAppointment.bodyPlacement
+        }));
+        
+        if (addAppointment.fulfilled.match(resultAction)) {
+            setIsSuccess(true);
+        } else {
+            setFormError(resultAction.payload || 'Ошибка при создании записи');
+        }
     } catch (error) {
-        // Ошибка приходит из rejectWithValue в thunk
-        setFormError(error || 'Ошибка при создании записи. Попробуйте позже.');
+        setFormError('Не удалось создать запись. Проверьте соединение с сервером.');
     }
 };
 
