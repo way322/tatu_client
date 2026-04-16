@@ -29,7 +29,6 @@ const Appointment = () => {
     const [selectedDate, setSelectedDate] = useState('');
     const [isSuccess, setIsSuccess] = useState(false);
     const [formError, setFormError] = useState('');
-    const [isConfirmed, setIsConfirmed] = useState(false);
 
     const timeSlots = ['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
 
@@ -38,7 +37,6 @@ const Appointment = () => {
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
-
         return `${year}-${month}-${day}`;
     };
 
@@ -59,7 +57,6 @@ const Appointment = () => {
 
     const handleInputChange = (field, value) => {
         setFormError('');
-        setIsConfirmed(false);
         dispatch(clearBookingError());
         dispatch(setAppointmentData({ [field]: value }));
     };
@@ -77,23 +74,17 @@ const Appointment = () => {
 
         setPhone(formatted);
         setFormError('');
-        setIsConfirmed(false);
         dispatch(clearBookingError());
         dispatch(setAppointmentData({ phone: cleaned }));
     };
 
     const isPastTimeSlot = (date, time) => {
         if (!date || !time) return false;
-
         const today = getLocalDateString();
-
         if (date !== today) return false;
-
         const [hours, minutes] = time.split(':').map(Number);
         const slotDate = new Date();
-
         slotDate.setHours(hours, minutes, 0, 0);
-
         return slotDate.getTime() <= Date.now();
     };
 
@@ -108,7 +99,6 @@ const Appointment = () => {
 
     const hasActiveAppointmentByPhone = () => {
         const currentPhone = String(currentAppointment.phone || '').replace(/\D/g, '');
-
         return appointments.some((item) => {
             const savedPhone = String(item.phone || '').replace(/\D/g, '');
             return savedPhone === currentPhone && item.status === 'pending';
@@ -117,11 +107,8 @@ const Appointment = () => {
 
     const isSelectedDateTimeInPast = () => {
         if (!currentAppointment.date) return false;
-
         const [datePart, timePart] = currentAppointment.date.split(' ');
-
         if (!datePart || !timePart) return false;
-
         return isPastTimeSlot(datePart, timePart);
     };
 
@@ -160,25 +147,8 @@ const Appointment = () => {
             return;
         }
 
-        if (!isConfirmed) {
-            setFormError('Подтвердите, пожалуйста, корректность данных перед отправкой.');
-            return;
-        }
-
-        dispatch(addAppointment({
-            clientName: currentAppointment.clientName,
-            date: currentAppointment.date,
-            master: currentAppointment.master,
-            service: currentAppointment.service,
-            phone: currentAppointment.phone,
-            tattooIdea: currentAppointment.tattooIdea,
-            tattooSize: currentAppointment.tattooSize,
-            bodyPlacement: currentAppointment.bodyPlacement
-        })).unwrap().then(() => {
-            setIsSuccess(true);
-        }).catch((err) => {
-            setFormError(err.message || 'Ошибка при записи');
-        });
+        dispatch(addAppointment());
+        setIsSuccess(true);
     };
 
     useEffect(() => {
@@ -193,8 +163,7 @@ const Appointment = () => {
             currentAppointment.master &&
             currentAppointment.service &&
             currentAppointment.phone.length === 11 &&
-            !duplicatePhoneError &&
-            isConfirmed
+            !duplicatePhoneError
         );
     };
 
@@ -309,14 +278,8 @@ const Appointment = () => {
                                                 key={time}
                                                 className={`time-slot ${currentAppointment.date === fullDate ? 'selected' : ''} ${isUnavailable ? 'busy' : ''}`}
                                                 onClick={() => {
-                                                    if (!selectedDate) {
-                                                        return;
-                                                    }
-
-                                                    if (isPastSlot || isBusySlot) {
-                                                        return;
-                                                    }
-
+                                                    if (!selectedDate) return;
+                                                    if (isPastSlot || isBusySlot) return;
                                                     setFormError('');
                                                     handleInputChange('date', fullDate);
                                                 }}
@@ -421,17 +384,7 @@ const Appointment = () => {
                                 />
                             </label>
 
-                            <label className="confirm-checkbox">
-                                <input
-                                    type="checkbox"
-                                    checked={isConfirmed}
-                                    onChange={(e) => {
-                                        setIsConfirmed(e.target.checked);
-                                        setFormError('');
-                                    }}
-                                />
-                                <span>Подтверждаю, что все данные указаны верно</span>
-                            </label>
+                            {/* Галка подтверждения УДАЛЕНА */}
                         </div>
 
                         <div className="appointment-summary">
