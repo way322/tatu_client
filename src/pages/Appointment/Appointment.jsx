@@ -118,39 +118,45 @@ const handlePhoneChange = (value) => {
             ? 'На этот номер уже есть активная запись. Новую запись можно оформить только после завершения или отмены предыдущей.'
             : '';
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        setFormError('');
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormError('');
 
-        if (
-            !currentAppointment.clientName.trim() ||
-            !currentAppointment.date ||
-            !currentAppointment.master ||
-            !currentAppointment.service ||
-            currentAppointment.phone.length !== 11
-        ) {
-            setFormError('Пожалуйста, заполните все обязательные поля корректно.');
-            return;
-        }
+    if (
+        !currentAppointment.clientName.trim() ||
+        !currentAppointment.date ||
+        !currentAppointment.master ||
+        !currentAppointment.service ||
+        currentAppointment.phone.length !== 11
+    ) {
+        setFormError('Пожалуйста, заполните все обязательные поля корректно.');
+        return;
+    }
 
-        if (duplicatePhoneError) {
-            setFormError(duplicatePhoneError);
-            return;
-        }
+    if (duplicatePhoneError) {
+        setFormError(duplicatePhoneError);
+        return;
+    }
 
-        if (isSelectedDateTimeInPast()) {
-            setFormError('Нельзя записаться на прошедшее время. Пожалуйста, выберите другой слот.');
-            return;
-        }
+    if (isSelectedDateTimeInPast()) {
+        setFormError('Нельзя записаться на прошедшее время. Пожалуйста, выберите другой слот.');
+        return;
+    }
 
-        if (isMasterBusy()) {
-            setFormError('На выбранные дату и время этот мастер уже записан. Пожалуйста, выберите другое время.');
-            return;
-        }
+    if (isMasterBusy()) {
+        setFormError('На выбранные дату и время этот мастер уже записан. Пожалуйста, выберите другое время.');
+        return;
+    }
 
-        dispatch(addAppointment());
+    try {
+        // Ждём завершения запроса и проверяем, что он успешен
+        await dispatch(addAppointment()).unwrap();
         setIsSuccess(true);
-    };
+    } catch (error) {
+        // Ошибка приходит из rejectWithValue в thunk
+        setFormError(error || 'Ошибка при создании записи. Попробуйте позже.');
+    }
+};
 
     useEffect(() => {
         dispatch(clearLastAppointment());
