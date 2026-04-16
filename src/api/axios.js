@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://sd.railway.internal/api',
+  baseURL: 'https://sd-production-1883.up.railway.app/api',
 });
 
 // Добавляем токен в заголовки, если он есть
