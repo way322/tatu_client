@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateAppointmentStatus } from '../../store/slices/appointmentSlice';
+import { updateAppointmentStatus, fetchAppointmentByPhone } from '../../store/slices/appointmentSlice';
 import './MyAppointment.css';
 
 const MyAppointment = () => {
@@ -40,21 +40,20 @@ const MyAppointment = () => {
         }) || null;
     }, [appointments, searchPhone]);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        setError('');
-        setSuccessMessage('');
-        setSearched(true);
-
-        if (searchPhone.length !== 11) {
-            setError('Введите корректный номер телефона из 11 цифр.');
-            return;
-        }
-
-        if (!activeAppointment) {
-            setError('Активная запись на этот номер не найдена.');
-        }
-    };
+const handleSearch = async (e) => {
+  e.preventDefault();
+  if (searchPhone.length !== 11) {
+    setError('Введите 11 цифр');
+    return;
+  }
+  setSearched(true);
+  const result = await dispatch(fetchAppointmentByPhone(searchPhone));
+  if (result.error) {
+    setError('Активная запись не найдена');
+  } else {
+    setError('');
+  }
+};
 
     const handleCancelAppointment = () => {
         if (!activeAppointment) return;

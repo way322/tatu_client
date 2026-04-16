@@ -1,30 +1,35 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
+    fetchAppointments,
     updateAppointmentStatus,
     deleteAppointment,
     deleteArchivedAppointments
 } from '../../store/slices/appointmentSlice';
-import {
-    ADMIN_LOGIN,
-    ADMIN_PASSWORD,
-    ADMIN_AUTH_STORAGE_KEY
-} from '../../constants/admin';
+import api from '../../api/axios';
 import './Admin.css';
 
 const Admin = () => {
     const dispatch = useDispatch();
-    const appointments = useSelector(state => state.appointment.appointments);
+    const { appointments, loading } = useSelector(state => state.appointment);
 
+    // Локальное состояние для логина
     const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState('pending'); // 'pending' или 'archive'
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return localStorage.getItem(ADMIN_AUTH_STORAGE_KEY) === 'true';
+        return !!localStorage.getItem('admin_token');
     });
 
+    // Загружаем записи, если админ авторизован
+    useEffect(() => {
+        if (isAuthenticated) {
+            dispatch(fetchAppointments());
+        }
+    }, [isAuthenticated, dispatch]);
+
+    // Сортировка записей (новые сверху)
     const sortedAppointments = useMemo(() => {
         return [...appointments].sort(
             (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
@@ -75,26 +80,29 @@ const Admin = () => {
         return Object.entries(groups).sort((a, b) => order(a[0]) - order(b[0]));
     };
 
-    const handleLogin = (e) => {
+    // Логин через сервер
+    const handleLogin = async (e) => {
         e.preventDefault();
-        if (login === ADMIN_LOGIN && password === ADMIN_PASSWORD) {
-            localStorage.setItem(ADMIN_AUTH_STORAGE_KEY, 'true');
+        try {
+            const response = await api.post('/admin/login', { login, password });
+            localStorage.setItem('admin_token', response.data.token);
             setIsAuthenticated(true);
             setError('');
             setPassword('');
-        } else {
+        } catch (err) {
             setError('Неверный логин или пароль');
         }
     };
 
     const handleLogout = () => {
-        localStorage.removeItem(ADMIN_AUTH_STORAGE_KEY);
+        localStorage.removeItem('admin_token');
         setIsAuthenticated(false);
         setLogin('');
         setPassword('');
         setError('');
     };
 
+    // Действия с записями
     const handleComplete = (id) => {
         dispatch(updateAppointmentStatus({ id, status: 'completed' }));
     };
@@ -123,6 +131,7 @@ const Admin = () => {
         }
     };
 
+    // Форматирование телефона
     const formatPhone = (phone) => {
         if (!phone) return 'Не указан';
         const cleaned = String(phone).replace(/\D/g, '');
@@ -159,6 +168,7 @@ const Admin = () => {
         }
     };
 
+    // Рендер одной карточки
     const renderAppointmentCard = (appointment) => {
         const isPending = appointment.status === 'pending';
         const isCompleted = appointment.status === 'completed';
@@ -263,6 +273,7 @@ const Admin = () => {
         );
     };
 
+    // Форма входа
     if (!isAuthenticated) {
         return (
             <div className="admin-page">
@@ -290,6 +301,17 @@ const Admin = () => {
                         {error && <p className="admin-error">{error}</p>}
                         <button type="submit" className="admin-login-button">Войти</button>
                     </form>
+                </div>
+            </div>
+        );
+    }
+
+    // Панель управления
+    if (loading) {
+        return (
+            <div className="admin-page">
+                <div className="admin-header">
+                    <h1>Загрузка данных...</h1>
                 </div>
             </div>
         );

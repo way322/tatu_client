@@ -165,8 +165,20 @@ const Appointment = () => {
             return;
         }
 
-        dispatch(addAppointment());
-        setIsSuccess(true);
+        dispatch(addAppointment({
+            clientName: currentAppointment.clientName,
+            date: currentAppointment.date,
+            master: currentAppointment.master,
+            service: currentAppointment.service,
+            phone: currentAppointment.phone,
+            tattooIdea: currentAppointment.tattooIdea,
+            tattooSize: currentAppointment.tattooSize,
+            bodyPlacement: currentAppointment.bodyPlacement
+        })).unwrap().then(() => {
+            setIsSuccess(true);
+        }).catch((err) => {
+            setFormError(err.message || 'Ошибка при записи');
+        });
     };
 
     useEffect(() => {
