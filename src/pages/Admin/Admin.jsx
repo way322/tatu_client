@@ -3,8 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
     fetchAppointments,
     updateAppointmentStatus,
-    deleteAppointment,
-    deleteArchivedAppointments
+    deleteAppointment
+    // deleteArchivedAppointments — удалён импорт
 } from '../../store/slices/appointmentSlice';
 import api from '../../api/axios';
 import './Admin.css';
@@ -20,7 +20,6 @@ const Admin = () => {
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         return !!localStorage.getItem('admin_token');
     });
-    const [isClearing, setIsClearing] = useState(false);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -112,27 +111,6 @@ const Admin = () => {
         const confirmed = window.confirm('Удалить запись?');
         if (confirmed) {
             dispatch(deleteAppointment(id));
-        }
-    };
-
-    const handleClearArchive = async () => {
-        const confirmed = window.confirm(
-            'Вы уверены, что хотите удалить ВСЕ завершённые и отменённые записи? Это действие нельзя отменить.'
-        );
-        if (confirmed) {
-            setIsClearing(true);
-            try {
-                const result = await dispatch(deleteArchivedAppointments()).unwrap();
-                if (result !== false) {
-                    alert('Архив успешно очищен');
-                } else {
-                    alert('Не удалось очистить архив (сервер не удалил записи)');
-                }
-            } catch (err) {
-                alert('Ошибка при очистке архива: ' + (err || 'Неизвестная ошибка'));
-            } finally {
-                setIsClearing(false);
-            }
         }
     };
 
@@ -239,23 +217,14 @@ const Admin = () => {
         }
         const grouped = groupByDate(items);
         return (
-            <>
-                {isArchive && (
-                    <div className="admin-clear-archive">
-                        <button onClick={handleClearArchive} className="clear-archive-button" disabled={isClearing}>
-                            {isClearing ? 'Очистка...' : '🗑️ Очистить всё (завершённые и отменённые)'}
-                        </button>
+            <div className="admin-appointments-list">
+                {grouped.map(([dateLabel, dateItems]) => (
+                    <div key={dateLabel} className="admin-date-group">
+                        <h3 className="admin-date-header">{dateLabel}</h3>
+                        {dateItems.map(renderAppointmentCard)}
                     </div>
-                )}
-                <div className="admin-appointments-list">
-                    {grouped.map(([dateLabel, dateItems]) => (
-                        <div key={dateLabel} className="admin-date-group">
-                            <h3 className="admin-date-header">{dateLabel}</h3>
-                            {dateItems.map(renderAppointmentCard)}
-                        </div>
-                    ))}
-                </div>
-            </>
+                ))}
+            </div>
         );
     };
 
