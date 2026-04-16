@@ -13,27 +13,23 @@ const Admin = () => {
     const dispatch = useDispatch();
     const { appointments, loading } = useSelector(state => state.appointment);
 
-    // Локальное состояние для логина
     const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [activeTab, setActiveTab] = useState('pending'); // 'pending' или 'archive'
+    const [activeTab, setActiveTab] = useState('pending');
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         return !!localStorage.getItem('admin_token');
     });
+    const [isClearing, setIsClearing] = useState(false);
 
-    // Загружаем записи, если админ авторизован
     useEffect(() => {
         if (isAuthenticated) {
             dispatch(fetchAppointments());
         }
     }, [isAuthenticated, dispatch]);
 
-    // Сортировка записей (новые сверху)
     const sortedAppointments = useMemo(() => {
-        return [...appointments].sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-        );
+        return [...appointments].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }, [appointments]);
 
     const pendingAppointments = sortedAppointments.filter(item => item.status === 'pending');
@@ -44,7 +40,6 @@ const Admin = () => {
     const activeCount = pendingAppointments.length;
     const archivedCount = archivedAppointments.length;
 
-    // Группировка по дате сеанса
     const groupByDate = (items) => {
         const groups = {};
         const today = new Date().toISOString().slice(0, 10);
@@ -80,7 +75,6 @@ const Admin = () => {
         return Object.entries(groups).sort((a, b) => order(a[0]) - order(b[0]));
     };
 
-    // Логин через сервер
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
@@ -102,7 +96,6 @@ const Admin = () => {
         setError('');
     };
 
-    // Действия с записями
     const handleComplete = (id) => {
         dispatch(updateAppointmentStatus({ id, status: 'completed' }));
     };
@@ -122,16 +115,27 @@ const Admin = () => {
         }
     };
 
-    const handleClearArchive = () => {
+    const handleClearArchive = async () => {
         const confirmed = window.confirm(
             'Вы уверены, что хотите удалить ВСЕ завершённые и отменённые записи? Это действие нельзя отменить.'
         );
         if (confirmed) {
-            dispatch(deleteArchivedAppointments());
+            setIsClearing(true);
+            try {
+                const result = await dispatch(deleteArchivedAppointments()).unwrap();
+                if (result !== false) {
+                    alert('Архив успешно очищен');
+                } else {
+                    alert('Не удалось очистить архив (сервер не удалил записи)');
+                }
+            } catch (err) {
+                alert('Ошибка при очистке архива: ' + (err || 'Неизвестная ошибка'));
+            } finally {
+                setIsClearing(false);
+            }
         }
     };
 
-    // Форматирование телефона
     const formatPhone = (phone) => {
         if (!phone) return 'Не указан';
         const cleaned = String(phone).replace(/\D/g, '');
@@ -168,7 +172,6 @@ const Admin = () => {
         }
     };
 
-    // Рендер одной карточки
     const renderAppointmentCard = (appointment) => {
         const isPending = appointment.status === 'pending';
         const isCompleted = appointment.status === 'completed';
@@ -201,43 +204,26 @@ const Admin = () => {
 
                 <div className="admin-actions">
                     {isPending && (
-                        <button
-                            className="status-button primary"
-                            onClick={() => handleComplete(appointment.id)}
-                        >
+                        <button className="status-button primary" onClick={() => handleComplete(appointment.id)}>
                             Отметить как завершённый
                         </button>
                     )}
-
                     {isCompleted && (
                         <>
-                            <button
-                                className="status-button secondary"
-                                onClick={() => handleRestoreFromCompleted(appointment.id)}
-                            >
+                            <button className="status-button secondary" onClick={() => handleRestoreFromCompleted(appointment.id)}>
                                 Сделать активной снова
                             </button>
-                            <button
-                                className="delete-button"
-                                onClick={() => handleDelete(appointment.id)}
-                            >
+                            <button className="delete-button" onClick={() => handleDelete(appointment.id)}>
                                 Удалить
                             </button>
                         </>
                     )}
-
                     {isCancelled && (
                         <>
-                            <button
-                                className="status-button secondary"
-                                onClick={() => handleRestoreFromCancelled(appointment.id)}
-                            >
+                            <button className="status-button secondary" onClick={() => handleRestoreFromCancelled(appointment.id)}>
                                 Восстановить запись
                             </button>
-                            <button
-                                className="delete-button"
-                                onClick={() => handleDelete(appointment.id)}
-                            >
+                            <button className="delete-button" onClick={() => handleDelete(appointment.id)}>
                                 Удалить
                             </button>
                         </>
@@ -256,8 +242,8 @@ const Admin = () => {
             <>
                 {isArchive && (
                     <div className="admin-clear-archive">
-                        <button onClick={handleClearArchive} className="clear-archive-button">
-                            🗑️ Очистить всё (завершённые и отменённые)
+                        <button onClick={handleClearArchive} className="clear-archive-button" disabled={isClearing}>
+                            {isClearing ? 'Очистка...' : '🗑️ Очистить всё (завершённые и отменённые)'}
                         </button>
                     </div>
                 )}
@@ -273,7 +259,6 @@ const Admin = () => {
         );
     };
 
-    // Форма входа
     if (!isAuthenticated) {
         return (
             <div className="admin-page">
@@ -282,21 +267,11 @@ const Admin = () => {
                     <form onSubmit={handleLogin} className="admin-login-form">
                         <label>
                             Логин
-                            <input
-                                type="text"
-                                value={login}
-                                onChange={(e) => setLogin(e.target.value)}
-                                placeholder="Введите логин"
-                            />
+                            <input type="text" value={login} onChange={(e) => setLogin(e.target.value)} placeholder="Введите логин" />
                         </label>
                         <label>
                             Пароль
-                            <input
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Введите пароль"
-                            />
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Введите пароль" />
                         </label>
                         {error && <p className="admin-error">{error}</p>}
                         <button type="submit" className="admin-login-button">Войти</button>
@@ -306,7 +281,6 @@ const Admin = () => {
         );
     }
 
-    // Панель управления
     if (loading) {
         return (
             <div className="admin-page">
@@ -343,16 +317,10 @@ const Admin = () => {
             </div>
 
             <div className="admin-tabs">
-                <button
-                    className={`admin-tab ${activeTab === 'pending' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('pending')}
-                >
+                <button className={`admin-tab ${activeTab === 'pending' ? 'active' : ''}`} onClick={() => setActiveTab('pending')}>
                     Активные ({activeCount})
                 </button>
-                <button
-                    className={`admin-tab ${activeTab === 'archive' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('archive')}
-                >
+                <button className={`admin-tab ${activeTab === 'archive' ? 'active' : ''}`} onClick={() => setActiveTab('archive')}>
                     Архив ({archivedCount})
                 </button>
             </div>

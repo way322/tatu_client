@@ -58,11 +58,17 @@ export const deleteArchivedAppointments = createAsyncThunk(
   'appointment/deleteArchivedAppointments',
   async (_, { rejectWithValue, dispatch }) => {
     try {
-      await api.delete('/admin/appointments/archive');
-      dispatch(fetchAppointments());
-      return true;
+      const response = await api.delete('/admin/appointments/archive');
+      console.log('Ответ сервера на очистку архива:', response.data);
+      
+      // Даже если сервер не вернул информацию, всё равно обновляем список
+      await dispatch(fetchAppointments());
+      
+      // Возвращаем количество удалённых записей (если сервер вернул)
+      return response.data?.deleted ?? true;
     } catch (err) {
-      return rejectWithValue(err.response?.data?.error);
+      console.error('Ошибка при очистке архива:', err);
+      return rejectWithValue(err.response?.data?.error || 'Ошибка при очистке архива');
     }
   }
 );
